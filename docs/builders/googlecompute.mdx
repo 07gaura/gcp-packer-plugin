@@ -1,0 +1,139 @@
+---
+description: |
+  The googlecompute Packer builder is able to create images for use with Google
+  Cloud Compute Engine (GCE) based on existing images.
+page_title: Google Cloud Platform - Builders
+sidebar_title: Google Cloud Platform
+---
+
+# Google Compute Builder
+
+Type: `googlecompute`
+Artifact BuilderId: `packer.googlecompute`
+
+The `googlecompute` Packer builder is able to create
+[images](https://developers.google.com/compute/docs/images) for use with
+[Google Compute Engine](https://cloud.google.com/products/compute-engine) (GCE)
+based on existing images.
+
+It is possible to build images from scratch, but not with the `googlecompute`
+Packer builder. The process is recommended only for advanced users, please see
+[Building GCE Images from Scratch](https://cloud.google.com/compute/docs/tutorials/building-images)
+and the [Google Compute Import
+Post-Processor](/packer/plugins/post-processors/googlecompute/googlecompute-import) for more
+information.
+
+## Configuration Reference
+
+Configuration options are organized below into two categories: required and
+optional. Within each category, the available options are alphabetized and
+described.
+
+In addition to the options listed here, a
+[communicator](/packer/docs/templates/legacy_json_templates/communicator) can be configured for this
+builder.
+
+### Required:
+
+@include 'builder/googlecompute/Config-required.mdx'
+
+### Optional:
+
+@include 'builder/googlecompute/Config-not-required.mdx'
+
+@include 'builder/googlecompute/IAPConfig-not-required.mdx'
+
+### Startup Scripts
+
+Startup scripts can be a powerful tool for configuring the instance from which
+the image is made. The builder will wait for a startup script to terminate. A
+startup script can be provided via the `startup_script_file` or
+`startup-script` instance creation `metadata` field. Therefore, the build time
+will vary depending on the duration of the startup script. If
+`startup_script_file` is set, the `startup-script` `metadata` field will be
+overwritten. In other words, `startup_script_file` takes precedence.
+
+The builder does check for a pass/fail/error signal from the startup
+script by tracking the `startup-script-status` metadata. Packer will check if this key
+is set to done and if it not set to done before the timeout, Packer will fail the build.
+
+### Windows
+A Windows startup script can only be provided as a metadata field option. The
+builder will _not_ wait for a Windows startup script to terminate. You have
+to ensure that it finishes before the instance shuts down. For a list of
+supported startup script keys refer to [Using startup scripts on Windows](https://cloud.google.com/compute/docs/instances/startup-scripts/windows)
+
+```hcl
+metadata = {
+  sysprep-specialize-script-cmd = "..."
+}
+```
+
+### Logging
+
+Startup script logs can be copied to a Google Cloud Storage (GCS) location
+specified via the `startup-script-log-dest` instance creation `metadata` field.
+The GCS location must be writeable by the service account of the instance that Packer created.
+
+### Communicator Configuration
+
+#### Optional:
+
+@include 'packer-plugin-sdk/communicator/Config-not-required.mdx'
+
+@include 'packer-plugin-sdk/communicator/SSH-not-required.mdx'
+
+@include 'packer-plugin-sdk/communicator/SSH-Private-Key-File-not-required.mdx'
+
+
+### Temporary SSH keypair
+
+@include 'packer-plugin-sdk/communicator/SSHTemporaryKeyPair.mdx'
+
+#### Optional:
+
+@include 'packer-plugin-sdk/communicator/SSHTemporaryKeyPair-not-required.mdx'
+
+### Gotchas
+
+CentOS and recent Debian images have root ssh access disabled by default. Set
+`ssh_username` to any user, which will be created by packer with sudo access.
+
+The machine type must have a scratch disk, which means you can't use an
+`f1-micro` or `g1-small` to build images.
+
+## Extra disk attachments
+
+@include 'builder/googlecompute/BlockDevice.mdx'
+
+These can be defined using the [disk_attachment](#disk_attachment) block in the configuration.
+
+Note that this is an array, and therefore in HCL2 can be defined as multiple blocks, each
+one corresponding to a disk that will be attached to the instance you are booting.
+
+Example:
+
+```hcl
+source "googlecompute" "example" {
+  # Add whichever is necessary to build the image
+
+  disk_attachment {
+    volume_type     = "scratch"
+    volume_size     = 375
+  }
+
+  disk_attachment {
+    volume_type     = "pd-standard"
+    volume_size     = 25
+    interface_type  = "SCSI"
+  }
+}
+```
+
+### Required:
+
+@include 'builder/googlecompute/BlockDevice-required.mdx'
+
+### Optional:
+
+@include 'builder/googlecompute/BlockDevice-not-required.mdx'
